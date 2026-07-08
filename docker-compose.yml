@@ -1,0 +1,67 @@
+# Full stack for a single host (e.g. a DigitalOcean Droplet):
+#   web app + Telegram bot + PostgreSQL.
+#
+#   1. Copy .env.example to .env and fill in the values
+#      (set DATABASE_URL to the `db` service below).
+#   2. docker compose up -d --build
+#   3. (first run) seed demo data: docker compose exec web npm run db:seed
+#
+# The `web` container runs `prisma migrate deploy` automatically on start.
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-getreport}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-getreport}?schema=public
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      NEXT_PUBLIC_TELEGRAM_BOT_USERNAME: ${NEXT_PUBLIC_TELEGRAM_BOT_USERNAME}
+      SESSION_SECRET: ${SESSION_SECRET}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+      BOOTSTRAP_ADMIN_TELEGRAM_IDS: ${BOOTSTRAP_ADMIN_TELEGRAM_IDS}
+    ports:
+      - "3000:3000"
+    volumes:
+      # Persist uploaded evidence across restarts.
+      - uploads:/app/public/uploads
+
+  bot:
+    build: .
+    restart: unless-stopped
+    command: sh -c "npm run bot:start"
+    depends_on:
+      db:
+        condition: service_healthy
+      web:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-getreport}?schema=public
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      NEXT_PUBLIC_TELEGRAM_BOT_USERNAME: ${NEXT_PUBLIC_TELEGRAM_BOT_USERNAME}
+      SESSION_SECRET: ${SESSION_SECRET}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+      BOOTSTRAP_ADMIN_TELEGRAM_IDS: ${BOOTSTRAP_ADMIN_TELEGRAM_IDS}
+    volumes:
+      - uploads:/app/public/uploads
+
+volumes:
+  db-data:
+  uploads:

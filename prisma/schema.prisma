@@ -1,0 +1,235 @@
+// GetReport — Prisma schema
+// Reviews platform for companies and specialists.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────────────────────
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum EntityType {
+  COMPANY
+  SPECIALIST
+}
+
+// Moderation status shared by user-generated content.
+enum ModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum RelationType {
+  WORKS_AT // specialist -> company
+  OWNS // person/company -> company
+  PARTNER
+  FORMER_EMPLOYEE
+  AFFILIATE
+  ASSOCIATED_WITH
+  OTHER
+}
+
+enum EvidenceType {
+  IMAGE
+  DOCUMENT
+  LINK
+}
+
+// ─────────────────────────────────────────────────────────────
+// Users (Telegram-only auth)
+// ─────────────────────────────────────────────────────────────
+
+model User {
+  id          String   @id @default(cuid())
+  telegramId  BigInt   @unique
+  username    String? // Telegram @username (may be absent)
+  firstName   String?
+  lastName    String?
+  photoUrl    String?
+  role        Role     @default(USER)
+  isBanned    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  lastLoginAt DateTime @default(now())
+
+  reviews         Review[]        @relation("ReviewAuthor")
+  moderations     Review[]        @relation("ReviewModerator")
+  createdEntities Entity[]        @relation("EntityCreator")
+  createdNews     NewsEvent[]     @relation("NewsAuthor")
+  auditLogs       AdminAuditLog[]
+
+  @@index([role])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Entities — the "cards" for companies and specialists
+// ─────────────────────────────────────────────────────────────
+
+model Entity {
+  id             String  @id @default(cuid())
+  type           EntityType
+  name           String
+  slug           String  @unique
+  headline       String? // short tagline (e.g. role / industry)
+  description    String? @db.Text
+  location       String?
+  website        String?
+  avatarUrl      String?
+  registrationNo String? // company-specific
+  aliases        String? // specialist-specific: known aliases
+
+  status          ModerationStatus @default(PENDING)
+  isBlacklisted   Boolean          @default(false)
+  blacklistReason String?          @db.Text
+
+  // Cached rating aggregate (recomputed on review approval).
+  ratingAvg   Float @default(0)
+  ratingCount Int   @default(0)
+
+  createdById String?
+  createdBy   User?   @relation("EntityCreator", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reviews        Review[]
+  news           NewsEvent[]
+  relationsFrom  EntityRelation[] @relation("RelationFrom")
+  relationsTo    EntityRelation[] @relation("RelationTo")
+  reviewMentions ReviewMention[]
+
+  @@index([type])
+  @@index([status])
+  @@index([isBlacklisted])
+  @@index([name])
+}
+
+// Directed relation between two entities (e.g. specialist WORKS_AT company).
+model EntityRelation {
+  id           String       @id @default(cuid())
+  fromEntityId String
+  toEntityId   String
+  type         RelationType @default(ASSOCIATED_WITH)
+  note         String?      @db.Text
+  createdAt    DateTime     @default(now())
+
+  fromEntity Entity @relation("RelationFrom", fields: [fromEntityId], references: [id], onDelete: Cascade)
+  toEntity   Entity @relation("RelationTo", fields: [toEntityId], references: [id], onDelete: Cascade)
+
+  @@unique([fromEntityId, toEntityId, type])
+  @@index([fromEntityId])
+  @@index([toEntityId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Reviews (moderated)
+// ─────────────────────────────────────────────────────────────
+
+model Review {
+  id       String @id @default(cuid())
+  entityId String
+  authorId String
+
+  rating Int // 1..5
+  title  String
+  body   String @db.Text
+
+  status         ModerationStatus @default(PENDING)
+  moderatorId    String?
+  moderationNote String?          @db.Text
+  moderatedAt    DateTime?
+
+  // Whether this review also proposed a brand-new entity (card).
+  createdEntity Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  entity    Entity          @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  author    User            @relation("ReviewAuthor", fields: [authorId], references: [id])
+  moderator User?           @relation("ReviewModerator", fields: [moderatorId], references: [id])
+  evidence  Evidence[]
+  mentions  ReviewMention[]
+
+  @@index([entityId])
+  @@index([status])
+  @@index([authorId])
+}
+
+// Evidence attached to a review: screenshots, documents, or links.
+model Evidence {
+  id        String       @id @default(cuid())
+  reviewId  String
+  type      EvidenceType
+  url       String // path under /uploads or external link
+  caption   String?
+  createdAt DateTime     @default(now())
+
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@index([reviewId])
+}
+
+// "Who they're connected with" mentioned inside a review.
+model ReviewMention {
+  id             String  @id @default(cuid())
+  reviewId       String
+  name           String // the name written by the reporter
+  note           String?
+  linkedEntityId String?
+
+  review       Review  @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  linkedEntity Entity? @relation(fields: [linkedEntityId], references: [id], onDelete: SetNull)
+
+  @@index([reviewId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// News / events published by admins on a card
+// ─────────────────────────────────────────────────────────────
+
+model NewsEvent {
+  id          String   @id @default(cuid())
+  entityId    String
+  title       String
+  body        String   @db.Text
+  sourceUrl   String? // link to media coverage / source
+  eventDate   DateTime @default(now())
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  entity    Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  createdBy User?  @relation("NewsAuthor", fields: [createdById], references: [id])
+
+  @@index([entityId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Admin audit log
+// ─────────────────────────────────────────────────────────────
+
+model AdminAuditLog {
+  id         String   @id @default(cuid())
+  adminId    String
+  action     String
+  targetType String
+  targetId   String?
+  meta       String?  @db.Text
+  createdAt  DateTime @default(now())
+
+  admin User @relation(fields: [adminId], references: [id])
+
+  @@index([adminId])
+  @@index([createdAt])
+}

@@ -1,0 +1,108 @@
+# DigitalOcean App Platform spec for GetReport.
+#
+# Deploy with:  doctl apps create --spec .do/app.yaml
+# Update with:  doctl apps update <APP_ID> --spec .do/app.yaml
+#
+# Replace <YOUR_GITHUB_USER>/<REPO> and <YOUR-APP-DOMAIN> below.
+# Set the SECRET env vars (TELEGRAM_BOT_TOKEN, SESSION_SECRET) as encrypted
+# values in the DigitalOcean dashboard or via `doctl` — do NOT commit them.
+
+name: getreport
+region: fra # Frankfurt; change to your preferred region (nyc, ams, sgp, ...)
+
+# ── Managed PostgreSQL ────────────────────────────────────────
+databases:
+  - name: db
+    engine: PG
+    version: "16"
+    production: false # dev database; bump to a production cluster for real traffic
+
+# ── Web service (Next.js site + admin + API) ──────────────────
+services:
+  - name: web
+    dockerfile_path: Dockerfile
+    source_dir: /
+    github:
+      repo: <YOUR_GITHUB_USER>/<REPO>
+      branch: main
+      deploy_on_push: true
+    http_port: 3000
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    run_command: npm run start
+    health_check:
+      http_path: /
+    routes:
+      - path: /
+    envs:
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        value: ${db.DATABASE_URL}
+      - key: NEXT_PUBLIC_APP_URL
+        scope: RUN_AND_BUILD_TIME
+        value: https://<YOUR-APP-DOMAIN>
+      - key: NEXT_PUBLIC_TELEGRAM_BOT_USERNAME
+        scope: RUN_AND_BUILD_TIME
+        value: GetReportBot
+      - key: TELEGRAM_BOT_TOKEN
+        scope: RUN_TIME
+        type: SECRET
+        value: PUT_IN_DASHBOARD
+      - key: SESSION_SECRET
+        scope: RUN_TIME
+        type: SECRET
+        value: PUT_IN_DASHBOARD
+      - key: BOOTSTRAP_ADMIN_TELEGRAM_IDS
+        scope: RUN_TIME
+        value: ""
+
+# ── Telegram bot (background worker) ──────────────────────────
+workers:
+  - name: bot
+    dockerfile_path: Dockerfile
+    source_dir: /
+    github:
+      repo: <YOUR_GITHUB_USER>/<REPO>
+      branch: main
+      deploy_on_push: true
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    run_command: npm run bot:start
+    envs:
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        value: ${db.DATABASE_URL}
+      - key: NEXT_PUBLIC_APP_URL
+        scope: RUN_TIME
+        value: https://<YOUR-APP-DOMAIN>
+      - key: NEXT_PUBLIC_TELEGRAM_BOT_USERNAME
+        scope: RUN_TIME
+        value: GetReportBot
+      - key: TELEGRAM_BOT_TOKEN
+        scope: RUN_TIME
+        type: SECRET
+        value: PUT_IN_DASHBOARD
+      - key: SESSION_SECRET
+        scope: RUN_TIME
+        type: SECRET
+        value: PUT_IN_DASHBOARD
+      - key: BOOTSTRAP_ADMIN_TELEGRAM_IDS
+        scope: RUN_TIME
+        value: ""
+
+# ── Run DB migrations before each deploy ──────────────────────
+jobs:
+  - name: migrate
+    kind: PRE_DEPLOY
+    dockerfile_path: Dockerfile
+    source_dir: /
+    github:
+      repo: <YOUR_GITHUB_USER>/<REPO>
+      branch: main
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    run_command: npx prisma migrate deploy
+    envs:
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        value: ${db.DATABASE_URL}

@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+.npm-cache
+npm-debug.log*
+.env
+.env*.local
+public/uploads/*
+!public/uploads/.gitkeep
+*.md
+.vscode
+.idea
+Dockerfile
+docker-compose.yml
