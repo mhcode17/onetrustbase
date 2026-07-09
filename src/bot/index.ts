@@ -8,7 +8,6 @@ import { downloadTelegramFile } from "./download";
 assertTelegramConfigured();
 
 const bot = new Bot(env.TELEGRAM_BOT_TOKEN);
-const WEB = env.APP_URL.replace(/\/$/, "");
 
 // ── In-memory draft state for the "add review" flow ───────────
 type Step = "search" | "chooseType" | "rating" | "title" | "body" | "evidence";
@@ -98,6 +97,33 @@ bot.callbackQuery(/^view:(.+)$/, async (ctx) => {
   await sendCard(ctx, slug);
 });
 
+// Start the in-chat "add review" flow pre-targeted to an existing card.
+bot.callbackQuery(/^addto:(.+)$/, async (ctx) => {
+  const id = ctx.match[1];
+  await ctx.answerCallbackQuery();
+  if (!ctx.from) return;
+  await ensureBotUser(ctx.from);
+  const entity = await prisma.entity.findUnique({
+    where: { id },
+    select: { id: true, name: true, status: true },
+  });
+  if (!entity || entity.status !== "APPROVED") {
+    await ctx.reply("That card is no longer available.");
+    return;
+  }
+  drafts.set(ctx.from.id, {
+    step: "rating",
+    evidence: [],
+    entityId: entity.id,
+    entityName: entity.name,
+  });
+  await ctx.reply(
+    `📝 <b>New review for ${escape(entity.name)}</b>\n\nYour submission is moderated by admins before it appears. Send /cancel to stop.`,
+    { parse_mode: "HTML" }
+  );
+  await askRating(ctx);
+});
+
 bot.callbackQuery(/^pick:(.+)$/, async (ctx) => {
   const id = ctx.match[1];
   const draft = ctx.from ? drafts.get(ctx.from.id) : null;
@@ -112,6 +138,19 @@ bot.callbackQuery(/^pick:(.+)$/, async (ctx) => {
   draft.entityName = entity.name;
   draft.step = "rating";
   await askRating(ctx);
+});
+
+// Start the in-chat "add review" flow from scratch (search for the subject).
+bot.callbackQuery("startadd", async (ctx) => {
+  await ctx.answerCallbackQuery();
+  if (!ctx.from) return;
+  await ensureBotUser(ctx.from);
+  drafts.set(ctx.from.id, { step: "search", evidence: [] });
+  await ctx.reply(
+    "📝 <b>New review</b>\n\nWho is it about? Send the <b>name</b> of the company or specialist. " +
+      "If they're not in the base yet, I'll help you add them.\n\nSend /cancel to stop.",
+    { parse_mode: "HTML" }
+  );
 });
 
 bot.callbackQuery("newentity", async (ctx) => {
@@ -303,8 +342,8 @@ async function doSearch(ctx: any, q: string) {
 
   if (results.length === 0) {
     await ctx.reply(
-      `No results for “${q}”.\n\nWant to add the first review? Use /add.`,
-      { reply_markup: new InlineKeyboard().url("Add on the website", `${WEB}/submit`) }
+      `No results for “${q}”.\n\nWant to add the first review? Tap below to add it right here — it will be published after an admin approves it.`,
+      { reply_markup: new InlineKeyboard().text("➕ Add a review", "startadd") }
     );
     return;
   }
@@ -370,10 +409,7 @@ async function sendCard(ctx: any, slug: string) {
 
   await ctx.reply(text, {
     parse_mode: "HTML",
-    reply_markup: new InlineKeyboard()
-      .url("🌐 Open full card", `${WEB}/entity/${entity.slug}`)
-      .row()
-      .url("➕ Add a review", `${WEB}/submit?entity=${entity.slug}`),
+    reply_markup: new InlineKeyboard().text("➕ Add a review", `addto:${entity.id}`),
   });
 }
 
