@@ -1,8 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import clsx from "clsx";
-import { DocIcon, ImageIcon, LinkIcon, XIcon } from "./icons";
+import {
+  ChevronLeft,
+  ChevronRight,
+  DocIcon,
+  ImageIcon,
+  LinkIcon,
+  XIcon,
+} from "./icons";
 
 export interface EvidenceItem {
   id: string;
@@ -12,21 +20,46 @@ export interface EvidenceItem {
 }
 
 export function EvidenceGallery({ items }: { items: EvidenceItem[] }) {
-  const [preview, setPreview] = useState<string | null>(null);
-  if (!items.length) return null;
+  const [index, setIndex] = useState<number | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   const images = items.filter((i) => i.type === "IMAGE");
+
+  useEffect(() => setMounted(true), []);
+
+  // Keyboard controls + background scroll lock while the viewer is open.
+  useEffect(() => {
+    if (index === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIndex(null);
+      else if (e.key === "ArrowRight")
+        setIndex((i) => (i === null ? i : (i + 1) % images.length));
+      else if (e.key === "ArrowLeft")
+        setIndex((i) => (i === null ? i : (i - 1 + images.length) % images.length));
+    };
+    window.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [index, images.length]);
+
+  if (!items.length) return null;
+
   const files = items.filter((i) => i.type === "DOCUMENT");
   const links = items.filter((i) => i.type === "LINK");
+  const current = index !== null ? images[index] : null;
 
   return (
     <div className="mt-3 space-y-3">
       {images.length > 0 && (
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-          {images.map((img) => (
+          {images.map((img, i) => (
             <button
               key={img.id}
-              onClick={() => setPreview(img.url)}
+              onClick={() => setIndex(i)}
               className="group relative aspect-square overflow-hidden rounded-lg border border-line bg-bg-soft"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -70,25 +103,70 @@ export function EvidenceGallery({ items }: { items: EvidenceItem[] }) {
         </div>
       )}
 
-      {preview && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
-          onClick={() => setPreview(null)}
-        >
-          <button
-            className="absolute right-4 top-4 rounded-full bg-bg-elev p-2 text-slate-200"
-            onClick={() => setPreview(null)}
+      {mounted &&
+        current &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4"
+            onClick={() => setIndex(null)}
           >
-            <XIcon />
-          </button>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={preview}
-            alt="evidence preview"
-            className="max-h-[90vh] max-w-full rounded-xl object-contain"
-          />
-        </div>
-      )}
+            <button
+              className="absolute right-4 top-4 z-10 rounded-full bg-white/10 p-2 text-white transition hover:bg-white/20"
+              onClick={() => setIndex(null)}
+              aria-label="Close"
+            >
+              <XIcon />
+            </button>
+
+            {images.length > 1 && (
+              <>
+                <button
+                  className="absolute left-4 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white transition hover:bg-white/20"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIndex((i) => (i === null ? i : (i - 1 + images.length) % images.length));
+                  }}
+                  aria-label="Previous"
+                >
+                  <ChevronLeft />
+                </button>
+                <button
+                  className="absolute right-4 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white transition hover:bg-white/20"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIndex((i) => (i === null ? i : (i + 1) % images.length));
+                  }}
+                  aria-label="Next"
+                >
+                  <ChevronRight />
+                </button>
+              </>
+            )}
+
+            <figure
+              className="flex max-h-full max-w-full flex-col items-center gap-3"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={current.url}
+                alt={current.caption ?? "evidence"}
+                className="max-h-[92vh] max-w-[96vw] rounded-lg object-contain shadow-2xl"
+              />
+              {(current.caption || images.length > 1) && (
+                <figcaption className="text-center text-sm text-white/70">
+                  {current.caption}
+                  {images.length > 1 && (
+                    <span className="ml-2 text-white/50">
+                      {index! + 1} / {images.length}
+                    </span>
+                  )}
+                </figcaption>
+              )}
+            </figure>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
