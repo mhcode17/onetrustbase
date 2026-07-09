@@ -40,10 +40,7 @@ bot.command("start", async (ctx) => {
       `• /blacklist — see flagged entities\n` +
       `• /help — all commands\n\n` +
       `Everything you submit is moderated by admins before it goes live.`,
-    {
-      parse_mode: "HTML",
-      reply_markup: new InlineKeyboard().url("🌐 Open the website", WEB),
-    }
+    { parse_mode: "HTML" }
   );
 });
 
