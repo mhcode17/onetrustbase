@@ -33,7 +33,7 @@ function stars(n: number) {
 bot.command("start", async (ctx) => {
   if (ctx.from) await ensureBotUser(ctx.from);
   await ctx.reply(
-    `👋 <b>Welcome to GetReport</b>\n\n` +
+    `👋 <b>Welcome to One Trust Base</b>\n\n` +
       `Search verified reviews on companies and specialists — and add your own.\n\n` +
       `• Just send me a <b>name</b> to search\n` +
       `• /add — submit a new review (with evidence)\n` +
@@ -457,7 +457,7 @@ async function main() {
     { command: "help", description: "Show help" },
     { command: "cancel", description: "Cancel current action" },
   ]);
-  console.log("🤖 GetReport bot starting (long polling)…");
+  console.log("🤖 One Trust Base bot starting (long polling)…");
   await bot.start();
 }
 

@@ -1,4 +1,4 @@
-# GetReport — single image used for BOTH the web app and the bot worker.
+# One Trust Base — single image used for BOTH the web app and the bot worker.
 # The web service runs `npm start`; the bot worker overrides the command
 # with `npm run bot:start` (see docker-compose.yml / .do/app.yaml).
 

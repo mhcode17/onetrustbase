@@ -14,7 +14,7 @@ export const env = {
   DATABASE_URL: required("DATABASE_URL"),
   TELEGRAM_BOT_TOKEN: required("TELEGRAM_BOT_TOKEN"),
   BOT_USERNAME:
-    process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? "GetReportBot",
+    process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? "onetrustbase_bot",
   SESSION_SECRET: required(
     "SESSION_SECRET",
     "dev-insecure-secret-change-me-please-32chars"

@@ -48,7 +48,7 @@ export function Header({ user }: { user: HeaderUser | null }) {
             <LogoMark />
           </span>
           <span className="text-lg tracking-tight">
-            Get<span className="gradient-text">Report</span>
+            One <span className="gradient-text">Trust Base</span>
           </span>
         </Link>
 

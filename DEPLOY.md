@@ -1,4 +1,4 @@
-# Deploying GetReport
+# Deploying One Trust Base
 
 This covers pushing to **GitHub** and deploying to **DigitalOcean**, via either a
 **Droplet** (Docker Compose — recommended for this app) or **App Platform**.

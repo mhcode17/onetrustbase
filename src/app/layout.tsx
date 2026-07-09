@@ -14,8 +14,8 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "GetReport — Reviews on companies & specialists",
-    template: "%s · GetReport",
+    default: "One Trust Base — Reviews on companies & specialists",
+    template: "%s · One Trust Base",
   },
   description:
     "Search verified reviews, evidence and connections for companies and specialists. Community-sourced, admin-moderated.",

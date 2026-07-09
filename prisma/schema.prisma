@@ -1,4 +1,4 @@
-// GetReport — Prisma schema
+// One Trust Base — Prisma schema
 // Reviews platform for companies and specialists.
 
 generator client {

@@ -25,7 +25,7 @@ export default async function LoginPage({
           <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand/20 text-brand-soft ring-1 ring-brand/30">
             <LogoMark width={28} height={28} />
           </div>
-          <h1 className="text-2xl font-bold">Sign in to GetReport</h1>
+          <h1 className="text-2xl font-bold">Sign in to One Trust Base</h1>
           <p className="mx-auto mt-2 max-w-sm text-sm text-muted">
             Access is Telegram-only. We use it to keep the community
             accountable — no passwords, no email.

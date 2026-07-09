@@ -1,4 +1,4 @@
-# DigitalOcean App Platform spec for GetReport.
+# DigitalOcean App Platform spec for One Trust Base.
 #
 # Deploy with:  doctl apps create --spec .do/app.yaml
 # Update with:  doctl apps update <APP_ID> --spec .do/app.yaml
@@ -43,7 +43,7 @@ services:
         value: https://<YOUR-APP-DOMAIN>
       - key: NEXT_PUBLIC_TELEGRAM_BOT_USERNAME
         scope: RUN_AND_BUILD_TIME
-        value: GetReportBot
+        value: onetrustbase_bot
       - key: TELEGRAM_BOT_TOKEN
         scope: RUN_TIME
         type: SECRET
@@ -77,7 +77,7 @@ workers:
         value: https://<YOUR-APP-DOMAIN>
       - key: NEXT_PUBLIC_TELEGRAM_BOT_USERNAME
         scope: RUN_TIME
-        value: GetReportBot
+        value: onetrustbase_bot
       - key: TELEGRAM_BOT_TOKEN
         scope: RUN_TIME
         type: SECRET

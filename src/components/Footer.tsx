@@ -10,7 +10,7 @@ export function Footer() {
             <LogoMark width={16} height={16} />
           </span>
           <span>
-            Get<span className="text-slate-300">Report</span> — community
+            One <span className="text-slate-300">Trust Base</span> — community
             reviews, admin-verified.
           </span>
         </div>

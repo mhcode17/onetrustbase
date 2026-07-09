@@ -10,7 +10,7 @@ function slugify(s: string) {
 }
 
 async function main() {
-  console.log("🌱 Seeding GetReport demo data…");
+  console.log("🌱 Seeding One Trust Base demo data…");
 
   // ── Users ───────────────────────────────────────────────────
   const admin = await prisma.user.upsert({

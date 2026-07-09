@@ -1,4 +1,4 @@
-# GetReport
+# One Trust Base
 
 A community-sourced, admin-moderated platform for reviews on **companies** and **specialists (people)** — with a website, an admin panel, and a Telegram bot, all sharing one database.
 

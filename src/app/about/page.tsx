@@ -15,7 +15,7 @@ export default function AboutPage() {
   return (
     <div className="container-page max-w-3xl space-y-10">
       <div>
-        <h1 className="text-3xl font-bold">How GetReport works</h1>
+        <h1 className="text-3xl font-bold">How One Trust Base works</h1>
         <p className="mt-2 text-muted">
           A community-sourced, admin-verified register of reviews on companies
           and specialists.

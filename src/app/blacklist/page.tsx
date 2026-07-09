@@ -9,7 +9,7 @@ import { formatDate } from "@/lib/format";
 
 export const metadata = {
   title: "Blacklist",
-  description: "Companies and specialists flagged by GetReport moderators.",
+  description: "Companies and specialists flagged by One Trust Base moderators.",
 };
 export const dynamic = "force-dynamic";
 

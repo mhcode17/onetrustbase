@@ -1,8 +1,8 @@
 {
-  "name": "getreport",
+  "name": "one-trust-base",
   "version": "0.1.0",
   "private": true,
-  "description": "GetReport — reviews platform for companies and specialists (web + admin + Telegram bot)",
+  "description": "One Trust Base — reviews platform for companies and specialists (web + admin + Telegram bot)",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
