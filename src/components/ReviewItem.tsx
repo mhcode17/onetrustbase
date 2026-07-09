@@ -2,7 +2,9 @@ import Link from "next/link";
 import { UserAvatar } from "./Avatar";
 import { StarRatingDisplay } from "./StarRating";
 import { EvidenceGallery, type EvidenceItem } from "./Evidence";
-import { LinkIcon } from "./icons";
+import { LinkIcon, XIcon } from "./icons";
+import { ActionButton } from "./ActionButton";
+import { deleteReviewAction } from "@/lib/actions/admin";
 import { displayName, timeAgo } from "@/lib/format";
 
 export interface ReviewItemData {
@@ -26,7 +28,13 @@ export interface ReviewItemData {
   }[];
 }
 
-export function ReviewItem({ review }: { review: ReviewItemData }) {
+export function ReviewItem({
+  review,
+  isAdmin = false,
+}: {
+  review: ReviewItemData;
+  isAdmin?: boolean;
+}) {
   return (
     <article className="card p-5 animate-fade-in">
       <div className="flex items-start justify-between gap-4">
@@ -43,7 +51,18 @@ export function ReviewItem({ review }: { review: ReviewItemData }) {
             <p className="text-xs text-muted">{timeAgo(review.createdAt)}</p>
           </div>
         </div>
-        <StarRatingDisplay value={review.rating} size={16} />
+        <div className="flex items-center gap-2">
+          <StarRatingDisplay value={review.rating} size={16} />
+          {isAdmin && (
+            <ActionButton
+              action={deleteReviewAction.bind(null, review.id)}
+              confirm="Delete this review permanently? This cannot be undone."
+              className="text-muted hover:text-red-300"
+            >
+              <XIcon width={16} height={16} />
+            </ActionButton>
+          )}
+        </div>
       </div>
 
       <h3 className="mt-4 text-base font-semibold text-slate-100">

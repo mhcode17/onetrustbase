@@ -5,7 +5,7 @@ import type { Prisma } from "@prisma/client";
 import { EntityAvatar } from "@/components/Avatar";
 import { StatusBadge, TypeBadge, BlacklistBadge } from "@/components/Badges";
 import { ActionButton } from "@/components/ActionButton";
-import { setEntityStatusAction } from "@/lib/actions/admin";
+import { setEntityStatusAction, deleteEntityAction } from "@/lib/actions/admin";
 import { PlusIcon } from "@/components/icons";
 
 export const metadata = { title: "Cards" };
@@ -118,6 +118,13 @@ export default async function AdminEntitiesPage({
                 <Link href={`/admin/entities/${e.id}/edit`} className="btn-ghost">
                   Edit
                 </Link>
+                <ActionButton
+                  action={deleteEntityAction.bind(null, e.id)}
+                  confirm={`Delete "${e.name}" and all its reviews, evidence, events and connections? This cannot be undone.`}
+                  className="btn-danger"
+                >
+                  Delete
+                </ActionButton>
               </div>
             </div>
           ))}

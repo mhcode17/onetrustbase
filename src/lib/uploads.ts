@@ -1,5 +1,5 @@
 import "server-only";
-import { writeFile, mkdir } from "fs/promises";
+import { writeFile, mkdir, unlink } from "fs/promises";
 import path from "path";
 import crypto from "crypto";
 import { UPLOAD_DIR } from "./paths";
@@ -50,4 +50,24 @@ export async function saveEvidenceFiles(files: File[]): Promise<SavedFile[]> {
   }
 
   return saved;
+}
+
+/**
+ * Delete locally-stored evidence files from disk (e.g. when an admin deletes a
+ * review or a whole card). External links (type LINK) and non-/uploads paths
+ * are skipped. Missing files are ignored.
+ */
+export async function deleteLocalEvidenceFiles(
+  items: { type: string; url: string }[]
+): Promise<void> {
+  for (const it of items) {
+    if (it.type === "LINK") continue;
+    if (!it.url.startsWith("/uploads/")) continue;
+    const file = path.join(UPLOAD_DIR, path.basename(it.url));
+    try {
+      await unlink(file);
+    } catch {
+      // File already gone — nothing to do.
+    }
+  }
 }

@@ -244,7 +244,7 @@ export default async function EntityPage({
             ) : (
               <div className="space-y-4">
                 {entity.reviews.map((r) => (
-                  <ReviewItem key={r.id} review={serialize(r)} />
+                  <ReviewItem key={r.id} review={serialize(r)} isAdmin={isAdmin} />
                 ))}
               </div>
             )}

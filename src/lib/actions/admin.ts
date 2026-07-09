@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/auth";
 import { recomputeEntityRating } from "@/lib/ratings";
 import { newsSchema, relationSchema, blacklistSchema } from "@/lib/validation";
 import { uniqueEntitySlug } from "@/lib/slug";
+import { deleteLocalEvidenceFiles } from "@/lib/uploads";
 import type { ActionResult } from "./reviews";
 
 async function audit(
@@ -71,6 +72,59 @@ export async function moderateReviewAction(
   revalidatePath("/admin");
   revalidatePath(`/entity/${review.entity.slug}`);
   return { ok: true };
+}
+
+// ── Delete a review (approved or otherwise) ───────────────────
+export async function deleteReviewAction(
+  reviewId: string
+): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const review = await prisma.review.findUnique({
+    where: { id: reviewId },
+    include: {
+      evidence: true,
+      entity: { select: { id: true, slug: true } },
+    },
+  });
+  if (!review) return { ok: false, error: "Review not found." };
+
+  await deleteLocalEvidenceFiles(review.evidence);
+  // Evidence + mentions are removed via onDelete: Cascade.
+  await prisma.review.delete({ where: { id: reviewId } });
+  await recomputeEntityRating(review.entity.id);
+  await audit(admin.id, "review.delete", "review", reviewId);
+
+  revalidatePath("/admin");
+  revalidatePath(`/entity/${review.entity.slug}`);
+  return { ok: true };
+}
+
+// ── Delete an entire card (and everything under it) ───────────
+export async function deleteEntityAction(
+  entityId: string
+): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const entity = await prisma.entity.findUnique({
+    where: { id: entityId },
+    include: { reviews: { include: { evidence: true } } },
+  });
+  if (!entity) return { ok: false, error: "Card not found." };
+
+  // Remove all evidence files across the card's reviews from disk.
+  const allEvidence = entity.reviews.flatMap((r) => r.evidence);
+  await deleteLocalEvidenceFiles(allEvidence);
+
+  // Cascade removes reviews, evidence, mentions, news and relations.
+  await prisma.entity.delete({ where: { id: entityId } });
+  await audit(admin.id, "entity.delete", "entity", entityId, {
+    name: entity.name,
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/entities");
+  revalidatePath("/search");
+  revalidatePath("/blacklist");
+  return { ok: true, redirect: "/admin/entities" };
 }
 
 // ── Blacklist toggle ──────────────────────────────────────────

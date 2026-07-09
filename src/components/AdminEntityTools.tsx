@@ -2,8 +2,12 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { toggleBlacklistAction, addNewsAction } from "@/lib/actions/admin";
-import { BanIcon, NewsIcon, ShieldIcon } from "./icons";
+import {
+  toggleBlacklistAction,
+  addNewsAction,
+  deleteEntityAction,
+} from "@/lib/actions/admin";
+import { BanIcon, NewsIcon, ShieldIcon, XIcon } from "./icons";
 
 export function AdminEntityTools({
   entityId,
@@ -33,6 +37,24 @@ export function AdminEntityTools({
     });
   }
 
+  function deleteCard() {
+    if (
+      !window.confirm(
+        "Delete this entire card, including all its reviews, evidence, events and connections? This cannot be undone."
+      )
+    )
+      return;
+    setMsg("");
+    start(async () => {
+      const res = await deleteEntityAction(entityId);
+      if (res.ok) {
+        router.push(res.redirect ?? "/admin/entities");
+      } else {
+        setMsg(res.error ?? "Could not delete the card.");
+      }
+    });
+  }
+
   return (
     <div className="card border-brand/30 bg-brand/5 p-5">
       <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-brand-soft">
@@ -52,6 +74,13 @@ export function AdminEntityTools({
           onClick={() => setOpen(open === "news" ? "none" : "news")}
         >
           <NewsIcon width={16} height={16} /> Publish event / news
+        </button>
+        <button
+          className="btn-danger ml-auto"
+          onClick={deleteCard}
+          disabled={pending}
+        >
+          <XIcon width={16} height={16} /> Delete card
         </button>
       </div>
 
